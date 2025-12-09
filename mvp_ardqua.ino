@@ -64,7 +64,7 @@ void runPump(const unsigned long runTime, const int threshold)
 {
   Serial.println(F("*** Pumpvorgang START ***"));
 
-  while (True)
+  while (1)
   {
     digitalWrite(PIN_PUMP, HIGH);
     delay(runTime);
