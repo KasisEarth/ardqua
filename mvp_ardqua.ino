@@ -8,16 +8,13 @@ const int LED_MED = 2;
 const int LED_DRY = 3;
 
 // Für geglättete Messung
-#define N_SAMPLES 10
+constexpr int N_SAMPLES = 10;
 
 // TODO: aktuell kurze Intervalle zum Testen
-#define SAMPLE_INTERVAL_MS 30000
+constexpr int SAMPLE_INTERVAL_MS = 30000;
 
 // Hysteresis for moisture value
-#define HYSTERESIS 20
-
-// --- Zustandsvariablen ---
-unsigned long lastSampleTs = 0;
+constexpr int HYSTERESIS = 20;
 
 // threshold of soil moisture measurement
 static constexpr int thr[3] = {430, 520, 610};
@@ -96,6 +93,7 @@ int readSoilAveraged()
   return (int)(sum / N_SAMPLES);
 }
 
+unsigned long lastSampleTs = 0;
 Pump ardqua_pump = Pump(0);
 void setup()
 {
