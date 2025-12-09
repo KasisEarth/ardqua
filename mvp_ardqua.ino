@@ -3,51 +3,87 @@ const int PIN_SOIL = A0;   // Analog-Pin für Feuchtigkeitssensor
 const int PIN_SWITCH = A1; // Schalter
 const int PIN_PUMP = 8;    // Digital-Pin für Relais/MOSFET
 const int PIN_BUT = 9;     // Button fuer Modus-Umschaltung
-
-// --- Profil-Schwellwerte ---
-// Bereich: 0..1023, abhängig von Sensor-Kalibrierung
-const int THRESH_WET = 430;    // feuchtigkeitsliebend
-const int THRESH_NORMAL = 520; // normal
-const int THRESH_DRY = 610;    // trockenheitsliebend
-
-// --- Pumpenlaufzeiten je Profil ---
-const unsigned long PUMP_WET_MS = 1000;    // 1s
-const unsigned long PUMP_NORMAL_MS = 2000; // 2s
-const unsigned long PUMP_DRY_MS = 3000;    // 3s
-
-const int thresholds[3] = {430, 520, 610};
-const unsigned long pumpTimes[3] = {1000, 2000, 3000};
+const int LED_WET = 1;
+const int LED_MED = 2;
+const int LED_DRY = 3;
 
 // Für geglättete Messung
-const int N_SAMPLES = 10;
+#define N_SAMPLES 10
 
 // TODO: aktuell kurze Intervalle zum Testen
-const unsigned long SAMPLE_INTERVAL_MS = 30000; // 30 Sekunden
-const unsigned long DEFAULT_PUMP_TIME = 1000;   // nur Fallback
+#define SAMPLE_INTERVAL_MS 30000
 
-// Optional: Hysterese
-const int HYSTERESIS = 20;
+// Hysteresis for moisture value
+#define HYSTERESIS 20
 
 // --- Zustandsvariablen ---
 unsigned long lastSampleTs = 0;
 
-// Globale Variable, damit sie in Funktionen verändert werden kann
-int pumpMode = 0;
+// threshold of soil moisture measurement
+static constexpr int thr[3] = {430, 520, 610};
 
-void changePumpMode()
+// pump run time in ms
+static constexpr int prt[3] = {3000, 2000, 1000};
+
+// pins for LED configuration
+static constexpr int led[3] = {LED_WET, LED_MED, LED_DRY};
+
+class Pump
 {
-  if (pumpMode == 2)
+private:
+  // current mode of the pump
+  int pump_mode;
+
+  // current pump run time in ms
+  int pump_time;
+
+  // current led pin
+  int led_pin;
+
+public:
+  // constructor
+  Pump(int start_mode)
   {
-    pumpMode = 0;
+    this->pump_mode = start_mode;
+    this->pump_time = prt[start_mode];
+    this->led_pin = led[start_mode];
   }
-  else
+
+  void change_mode()
   {
-    pumpMode++;
+    digitalWrite(this->led_pin, LOW);
+    if (this->pump_mode == 2)
+    {
+      this->pump_mode = 0;
+    }
+    else
+    {
+      this->pump_mode++;
+    }
+    Serial.println(F("Pump Modus: "));
+    Serial.println(this->pump_mode);
+    this->led_pin = led[this->pump_mode];
+    this->pump_time = prt[this->pump_mode];
+    digitalWrite(this->led_pin, HIGH);
+    delay(1000);
   }
-  Serial.println(F("Pump Modus: "));
-  Serial.println(pumpMode);
-  delay(1000);
-}
+
+  void run_pump()
+  {
+    Serial.println(F("*** Pumpvorgang START ***"));
+
+    digitalWrite(PIN_PUMP, HIGH);
+    delay(this->pump_time);
+    digitalWrite(PIN_PUMP, LOW);
+
+    Serial.println(F("*** Pumpvorgang STOP ***"));
+  }
+
+  int get_pump_mode()
+  {
+    return this->pump_mode;
+  }
+};
 
 int readSoilAveraged()
 {
@@ -60,28 +96,7 @@ int readSoilAveraged()
   return (int)(sum / N_SAMPLES);
 }
 
-void runPump(const unsigned long runTime, const int threshold)
-{
-  Serial.println(F("*** Pumpvorgang START ***"));
-
-  while (1)
-  {
-    digitalWrite(PIN_PUMP, HIGH);
-    delay(runTime);
-    digitalWrite(PIN_PUMP, LOW);
-
-    delay(15000);
-
-    int moisture = readSoilAveraged();
-    if (moisture < (threshold + HYSTERESIS))
-    {
-      break;
-    }
-  }
-
-  Serial.println(F("*** Pumpvorgang STOP ***"));
-}
-
+Pump ardqua_pump = Pump(0);
 void setup()
 {
   pinMode(PIN_PUMP, OUTPUT);
@@ -94,15 +109,10 @@ void setup()
 
 void loop()
 {
-  int threshold = thresholds[0];
-  unsigned long pumpTime = pumpTimes[0];
-
   if (digitalRead(PIN_BUT) == HIGH)
   {
     // Bei Knopfdruck wird der Modus eins hochgestellt
-    changePumpMode();
-    threshold = thresholds[pumpMode];
-    pumpTime = pumpTimes[pumpMode];
+    ardqua_pump.change_mode();
   }
 
   unsigned long now = millis();
@@ -122,18 +132,27 @@ void loop()
 
     // Debug-Ausgabe
     Serial.print(F("Profil: "));
-    Serial.print(pumpMode);
+    Serial.print(ardqua_pump.get_pump_mode());
     Serial.print(F(" | Feuchtigkeit: "));
     Serial.print(moisture);
     Serial.print(F(" | Schwelle: "));
-    Serial.print(threshold);
-    Serial.print(F(" | Modus: "));
-    Serial.println(profile);
+    Serial.print(thr[ardqua_pump.get_pump_mode()]);
 
     // 2) Startet die Pumpe?
-    if (moisture >= (threshold + HYSTERESIS))
+    if (moisture >= (thr[ardqua_pump.get_pump_mode()] + HYSTERESIS))
     {
-      runPump(pumpTime, threshold);
+      while (1)
+      {
+        ardqua_pump.run_pump();
+
+        delay(15000);
+
+        int moisture = readSoilAveraged();
+        if (moisture < (thr[ardqua_pump.get_pump_mode()] + HYSTERESIS))
+        {
+          break;
+        }
+      }
     }
   }
 }
