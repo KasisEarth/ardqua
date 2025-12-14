@@ -82,6 +82,36 @@ public:
   }
 };
 
+class Button
+{
+  private:
+    // Status: ist der Button mit erstem Klick aktiviert?
+    bool state;
+    unsigned long last_pressed;
+
+  public:
+    // Constructor
+    Button()
+    {
+      this->state = false;
+      this->last_pressed = -10000;
+    }
+
+    void pressed()
+    {
+      if ((millis() - this->last_pressed) > 5000)
+      {
+        this->last_pressed = millis();
+        // TODO: das aktive LED auf AN stellen für 5 Sekunden
+      }
+      else
+      {
+        ardqua_pump.change_mode();
+        // TODO: LED steuerung in der change_mode ausbauen, dass soll via button klasse oder via neue LED klasse funktionieren.
+      }
+    }
+};
+
 int readSoilAveraged()
 {
   long sum = 0;
