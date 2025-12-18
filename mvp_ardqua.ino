@@ -136,19 +136,19 @@ public:
   void checkMod()
   {
     if (digitalRead(PIN_BUTTON) == HIGH &&
-        (millis() - self->buttonLastPressed) < 5000)
+        (millis() - this->buttonLastPressed) < 5000)
     {
-      self.changeMode();
+      this->changeMode();
     }
     if (digitalRead(PIN_BUTTON) == HIGH)
     {
-      self->buttonLastPressed = millis();
-      self.displayWake();
+      this->buttonLastPressed = millis();
+      this->displayWake();
     }
-    else if ((millis() - self->buttonLastPressed) > 5000 &&
+    else if ((millis() - this->buttonLastPressed) > 5000 &&
               digitalRead(PIN_BUTTON == LOW))
     {
-      this.displaySleep();
+      this->displaySleep();
     }
   }
 
@@ -165,8 +165,8 @@ public:
 
   void checkMoist()
   {
-    int moisture = this.readSoilAveraged();
-    this.addMoistureToHistory(moisture);
+    int moisture = this->readSoilAveraged();
+    this->addMoistureToHistory(moisture);
 
     int threshold;
     unsigned long pumpTime;
@@ -181,17 +181,17 @@ public:
     // ---------- Anzeige ----------
     if (this->oledMode == MODE_GRAPH)
     {
-      this.drawMoistureGraph();
+      this->drawMoistureGraph();
     }
     else
     {
-      this.drawTextScreen(moisture);
+      this->drawTextScreen(moisture);
     }
 
     // ---------- Bewässerung ----------
     if (moisture >= (this->threshold + HYSTERESIS))
     {
-      this.runPump(pumpTime, threshold); 
+      this->runPump(); 
       // TODO Das sollte nicht in dieser Methode sein, besser kappseln
       // Die Methode soll nur messen, und dann zurückgeben, ob gewässert werden soll
       // Wir machen wohl eine Funktion, die misst, dann darstellt, dann pumpt
@@ -308,6 +308,15 @@ Thread* checkMode = new Thread();
 // Feuchtigkeitssensor auslesen
 Thread* checkMoisture = new Thread();
 
+// Hack: Funktionen erstellen, weil onRun() nicht mit Methoden funktioniert?
+void CallbackMode(){
+	a.checkMod();
+}
+
+void CallbackMoisture(){
+	a.checkMoist();
+}
+
 // ================= SETUP =================
 
 void setup()
@@ -330,14 +339,14 @@ void setup()
   display.display();
   display.ssd1306_command(SSD1306_DISPLAYOFF);
 
-	checkMode->onRun(a.checkMod());
+	checkMode->onRun(CallbackMode);
 	checkMode->setInterval(500);
 
-  checkMoisture->onRun(a.checkMoist());
+  checkMoisture->onRun(CallbackMoisture);
   checkMoisture->setInterval(10000); //Temporaer 10 Sekunden
 
-	// Adds both threads to the controller
 	controll.add(checkMode);
+  controll.add(checkMoisture);
 }
 
 // ================= LOOP =================
@@ -348,61 +357,4 @@ void loop()
 
   controll.run();
 
-  // ---------- Taster ----------
-  static bool lastButtonState = HIGH;
-  bool buttonState = digitalRead(PIN_BUTTON);
-
-  if (lastButtonState == HIGH && buttonState == LOW)
-  {
-    displayWake();
-
-    // Modus wechseln
-    currentMode = (currentMode == MODE_GRAPH) ? MODE_TEXT : MODE_GRAPH;
-
-    delay(200); // Entprellen
-  }
-  lastButtonState = buttonState;
-
-  displaySleepIfTimeout();
-
-  // ---------- Messintervall ----------
-  if (now < lastSampleTs)
-    lastSampleTs = now;
-
-  if (now - lastSampleTs >= SAMPLE_INTERVAL_MS)
-  {
-    lastSampleTs = now;
-
-    int profile = getWaterProfile();
-    int moisture = readSoilAveraged();
-    addMoistureToHistory(moisture);
-
-    int threshold;
-    unsigned long pumpTime;
-
-    switch (profile)
-    {
-      case 1: threshold = THRESH_WET;    pumpTime = PUMP_WET_MS;    break;
-      case 2: threshold = THRESH_NORMAL; pumpTime = PUMP_NORMAL_MS; break;
-      case 3: threshold = THRESH_DRY;    pumpTime = PUMP_DRY_MS;    break;
-      default: threshold = THRESH_NORMAL; pumpTime = DEFAULT_PUMP_TIME;
-    }
-
-    Serial.print(F("Profil: "));
-    Serial.print(profile);
-    Serial.print(F(" | Feuchte: "));
-    Serial.print(moisture);
-    Serial.print(F(" | Schwelle: "));
-    Serial.println(threshold);
-
-    // ---------- Anzeige ----------
-    if (currentMode == MODE_GRAPH)
-      drawMoistureGraph(threshold);
-    else
-      drawTextScreen(profile, moisture, threshold);
-
-    // ---------- Bewässerung ----------
-    if (moisture >= (threshold + HYSTERESIS))
-      runPump(pumpTime, threshold);
-  }
 }
