@@ -20,8 +20,6 @@ const int LED_DRY    = 3;
 
 // ================= DISPLAY =================
 const unsigned long DISPLAY_ON_MS = 5000;
-bool displayOn = false;
-unsigned long displayOnTs = 0;
 
 // ================= DISPLAY MODUS =================
 enum DisplayMode
@@ -29,8 +27,6 @@ enum DisplayMode
   MODE_GRAPH,
   MODE_TEXT
 };
-
-DisplayMode currentMode = MODE_GRAPH;
 
 // ================= PROFILE =================
 // threshold of soil moisture measurement
@@ -71,22 +67,16 @@ class Ardqua
 private:
   // current mode (wet=0, medium=1, dry=2)
   int currentMode;
-
   // current pump run time in ms
   int pumpTime;
-
   // current threshold of moisture measurement
   int threshold;
-
   // current led pin
   int ledPin;
-
   // current OLED modus
   bool displayOn;
-
   // time of last button press
   int buttonLastPressed;
-
   // Mode of the OLED Display
   DisplayMode oledMode;
 
@@ -122,21 +112,28 @@ public:
     delay(1000);
   }
 
-  void runPump()
+  void checkPump()
   {
-    Serial.println(F("*** Pumpvorgang START ***"));
+    if (moisture >= (this->threshold + HYSTERESIS))
+    {
+      Serial.println(F("*** Pumpvorgang START ***"));
 
-    digitalWrite(PIN_PUMP, HIGH);
-    delay(this->pumpTime);
-    digitalWrite(PIN_PUMP, LOW);
+      digitalWrite(PIN_PUMP, HIGH);
+      delay(this->pumpTime);
+      digitalWrite(PIN_PUMP, LOW);
 
-    Serial.println(F("*** Pumpvorgang STOP ***"));
+      Serial.println(F("*** Pumpvorgang STOP ***"));
+    }
+    else
+    {
+      Serial.println(F("*** Kein Pumpvorgang notwendig ***"));
+    }
   }
 
   void checkMod()
   {
     if (digitalRead(PIN_BUTTON) == HIGH &&
-        (millis() - this->buttonLastPressed) < 5000)
+        (millis() - this->buttonLastPressed) < DISPLAY_ON_MS)
     {
       this->changeMode();
     }
@@ -145,7 +142,7 @@ public:
       this->buttonLastPressed = millis();
       this->displayWake();
     }
-    else if ((millis() - this->buttonLastPressed) > 5000 &&
+    else if ((millis() - this->buttonLastPressed) > DISPLAY_ON_MS &&
               digitalRead(PIN_BUTTON == LOW))
     {
       this->displaySleep();
@@ -155,21 +152,13 @@ public:
   int readSoilAveraged()
   {
     long sum = 0;
+    int moisture;
     for (int i = 0; i < N_SAMPLES; i++)
     {
       sum += analogRead(PIN_SOIL);
       delay(5);
     }
-    return sum / N_SAMPLES;
-  }
-
-  void checkMoist()
-  {
-    int moisture = this->readSoilAveraged();
-    this->addMoistureToHistory(moisture);
-
-    int threshold;
-    unsigned long pumpTime;
+    moisture = sum / N_SAMPLES;
 
     Serial.print(F("Profil: "));
     Serial.print(this->currentMode);
@@ -178,7 +167,11 @@ public:
     Serial.print(F(" | Schwelle: "));
     Serial.println(this->threshold);
 
-    // ---------- Anzeige ----------
+    return moisture;
+  }
+
+  void updateScreen()
+  {
     if (this->oledMode == MODE_GRAPH)
     {
       this->drawMoistureGraph();
@@ -186,16 +179,6 @@ public:
     else
     {
       this->drawTextScreen(moisture);
-    }
-
-    // ---------- Bewässerung ----------
-    if (moisture >= (this->threshold + HYSTERESIS))
-    {
-      this->runPump(); 
-      // TODO Das sollte nicht in dieser Methode sein, besser kappseln
-      // Die Methode soll nur messen, und dann zurückgeben, ob gewässert werden soll
-      // Wir machen wohl eine Funktion, die misst, dann darstellt, dann pumpt
-      // das wird dann ein eigener thread, der keine methode ist von dieser Klasse
     }
   }
 
@@ -229,7 +212,7 @@ public:
 
   void drawMoistureGraph()
   {
-    if (!displayOn) return;
+    if (!this->displayOn) return;
 
     const int gx = 0;
     const int gy = 16;
@@ -271,7 +254,7 @@ public:
 
   void drawTextScreen(int moisture)
   {
-    if (!displayOn) return;
+    if (!this->displayOn) return;
 
     display.clearDisplay();
     display.setTextSize(1);
@@ -288,12 +271,6 @@ public:
 
     display.display();
   }
-
-  int getCurrentMode()
-  {
-    return this->currentMode;
-  }
-
 };
 
 // ========== Objekte erstellen ===========
@@ -309,12 +286,17 @@ Thread* checkMode = new Thread();
 Thread* checkMoisture = new Thread();
 
 // Hack: Funktionen erstellen, weil onRun() nicht mit Methoden funktioniert?
-void CallbackMode(){
+void CallbackMode()
+{
 	a.checkMod();
 }
 
-void CallbackMoisture(){
-	a.checkMoist();
+void CallbackMoisture()
+{
+  int moisture = a.readSoilAveraged();
+  a.addMoistureToHistory(moisture);
+  a.updateScreen(moisture);
+  a.checkPump(moisture);
 }
 
 // ================= SETUP =================
