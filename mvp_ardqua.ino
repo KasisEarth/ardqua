@@ -164,6 +164,7 @@ public:
             && (millis() - this->buttonLastPressed) > DISPLAY_ON_MS)
     {
       this->displayWake();
+      this->updateScreen(moistureHistory[-1]);
       Serial.println("TFT Display Wake");
       this->buttonLastPressed = millis();
     }
