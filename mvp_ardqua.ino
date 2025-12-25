@@ -1,18 +1,20 @@
-#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_ST7735.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Thread.h>
 #include <ThreadController.h>
 
-// ================= OLED =================
-static constexpr int SCREEN_WIDTH = 128;
-static constexpr int SCREEN_HEIGHT = 64;
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+// ================= TFT ==================
+#define TFT_CS   10
+#define TFT_DC    9
+#define TFT_RST   8
+
+Adafruit_ST7735 display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // ================= PINS =================
 const int PIN_SOIL = A0;
 const int PIN_SWITCH = A1;
-const int PIN_PUMP = 8;
+const int PIN_PUMP = 12;
 const int PIN_BUTTON = 7;
 const int LED_WET = 1;
 const int LED_MED = 2;
@@ -221,22 +223,16 @@ public:
     }
   }
 
-  void displayWake()
-  {
-    if (!this->displayOn)
-    {
-      display.ssd1306_command(SSD1306_DISPLAYON);
-      this->displayOn = true;
-    }
-  }
+void displayWake()
+{
+  this->displayOn = true;
+}
 
-  void displaySleep()
-  {
-    if (this->displayOn)
-    {
-      display.ssd1306_command(SSD1306_DISPLAYOFF);
-      this->displayOn = false;
-    }
+void displaySleep()
+{
+  this->displayOn = false;
+  display.fillScreen(ST77XX_BLACK);
+}
   }
 
   void drawMoistureGraph()
@@ -254,7 +250,7 @@ public:
     display.setCursor(0, 0);
     display.print(F("Feuchteverlauf"));
 
-    display.drawRect(gx, gy, gw, gh, SSD1306_WHITE);
+    display.drawRect(gx, gy, gw, gh, ST77XX_WHITE);
 
     int count = historyFilled ? HISTORY_SIZE : historyIndex;
     if (count < 2)
@@ -274,13 +270,11 @@ public:
       int x0 = map(i - 1, 0, count - 1, gx + 1, gx + gw - 2);
       int x1 = map(i, 0, count - 1, gx + 1, gx + gw - 2);
 
-      display.drawLine(x0, y0, x1, y1, SSD1306_WHITE);
+      display.drawLine(x0, y0, x1, y1, ST77XX_WHITE);
     }
 
     int yThresh = map(this->threshold, 0, 1023, gy + gh - 2, gy + 1);
-    display.drawLine(gx + 1, yThresh, gx + gw - 2, yThresh, SSD1306_WHITE);
-
-    display.display();
+    display.drawLine(gx + 1, yThresh, gx + gw - 2, yThresh, ST77XX_WHITE);
   }
 
   void drawTextScreen(int moisture)
@@ -300,8 +294,6 @@ public:
 
     display.print(F("Schwelle: "));
     display.println(this->threshold);
-
-    display.display();
   }
 };
 
@@ -351,16 +343,9 @@ void setup()
   Serial.begin(9600);
   Serial.println(F("Start: Autobewaesserung mit OLED"));
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
-  {
-    Serial.println(F("OLED nicht gefunden"));
-    while (true)
-      ;
-  }
-
-  display.clearDisplay();
-  display.display();
-  display.ssd1306_command(SSD1306_DISPLAYOFF);
+  display.initR(INITR_BLACKTAB);
+  display.setRotation(1);              // Querformat
+  display.fillScreen(ST77XX_BLACK);
 
   checkButton->onRun(CallbackButton);
   checkButton->setInterval(200);
