@@ -134,15 +134,17 @@ public:
 
   void checkSchalt()
   {
-    if (digitalRead(PIN_WET) == HIGH && this->currentMode != 0)
+    bool I_wet = digitalRead(PIN_WET) == LOW;
+    bool II_dry = digitalRead(PIN_DRY) == LOW;
+    if (I_wet && this->currentMode != 0)
     {
       this->changePumpMode(0);
     }
-    else if (digitalRead(PIN_DRY) == HIGH && this->currentMode != 2)
+    else if (II_dry && this->currentMode != 2)
     {
       this->changePumpMode(2);
     }
-    else if (this->currentMode != 1)
+    else if (!I_wet && !II_dry && this->currentMode != 1)
     {
       this->changePumpMode(1);
     }
@@ -150,14 +152,12 @@ public:
 
   void checkBut()
   {
-    Serial.println(this->buttonLastPressed);
-    Serial.println(this->displayOn);
     if (digitalRead(PIN_BUTTON) == HIGH &&
         (millis() - this->buttonLastPressed) < DISPLAY_ON_MS)
     {
       Serial.println("TFT Display Modus aendern");
       this->changeDispMode();
-      this->updateScreen(moistureHistory[-1]);
+      this->updateScreen(moistureHistory[historyIndex-1]);
       this->buttonLastPressed = millis();
     }
     else if (digitalRead(PIN_BUTTON) == HIGH
@@ -165,13 +165,11 @@ public:
     {
       this->displayWake();
       this->updateScreen(moistureHistory[-1]);
-      Serial.println("TFT Display Wake");
       this->buttonLastPressed = millis();
     }
     else if ((millis() - this->buttonLastPressed) > DISPLAY_ON_MS &&
              digitalRead(PIN_BUTTON == LOW))
     {
-      Serial.println("TFT Display Sleep");
       this->displaySleep();
     }
   }
@@ -297,7 +295,7 @@ public:
     display.fillScreen(ST77XX_BLACK);
 
     // Text Einstellungen
-    display.setTextSize(2);                 // etwas größer für TFT
+    display.setTextSize(1);                 // etwas größer für TFT
     display.setTextColor(ST77XX_WHITE);     // Textfarbe
     display.setCursor(5, 10);
 
@@ -358,6 +356,9 @@ void setup()
 
   pinMode(PIN_BL, OUTPUT);
   analogWrite(PIN_BL, 200);   // Backlight AN (0–255)
+
+  pinMode(PIN_WET, INPUT_PULLUP);
+  pinMode(PIN_DRY, INPUT_PULLUP);
 
   Serial.begin(9600);
   Serial.println(F("Start: Autobewaesserung mit TFT"));
