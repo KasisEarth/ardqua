@@ -249,9 +249,6 @@ public:
   display.setCursor(0, gy);
   display.print(F("dry"));
 
-  display.setCursor(0, gy + gh / 2 - 4);
-  display.print(F("mid"));
-
   display.setCursor(0, gy + gh - 8);
   display.print(F("wet"));
 
@@ -281,16 +278,40 @@ public:
   display.drawLine(gx + 2, yThresh, gx + gw - 2, yThresh, ST77XX_RED);
 
   display.setTextColor(ST77XX_RED);
-  display.setCursor(gx + gw - 30, yThresh - 6);
+  display.setCursor(0, yThresh-2);
   display.print(this->threshold);
 
   // ---------- X-Achse ----------
-  display.setTextColor(ST77XX_WHITE);
-  display.setCursor(gx, gy + gh + 4);
-  display.print(F("old"));
+  if ((historyIndex * SAMPLE_INTERVAL_MS / 60000) > 60)
+  {
+    float totalzeit = round(historyIndex * SAMPLE_INTERVAL_MS / 3600000 * 10) / 10;
+    float halbzeit = round(totalzeit*5) / 10;
+    display.setTextColor(ST77XX_WHITE);
 
+    display.setCursor(gx, gy + gh + 4);
+    display.print(totalzeit);
+    display.print(F("h"));
+
+    display.setCursor(gx + (gw/2) - 10, gy + gh + 4);
+    display.print(halbzeit);
+    display.print(F("h"));
+  }
+  else
+  {
+    long totalzeit = round(historyIndex * SAMPLE_INTERVAL_MS / 60000);
+    long halbzeit = round(totalzeit*5) / 10;
+    display.setTextColor(ST77XX_WHITE);
+
+    display.setCursor(gx, gy + gh + 4);
+    display.print(totalzeit);
+    display.print(F("min"));
+
+    display.setCursor(gx + (gw/2) -10, gy + gh + 4);
+    display.print(halbzeit);
+    display.print(F("min"));
+  }
   display.setCursor(gx + gw - 18, gy + gh + 4);
-  display.print(F("new"));
+  display.print(F("now"));
 }
 
 
@@ -305,7 +326,7 @@ public:
     // Text Einstellungen
     display.setTextSize(1);                 // etwas größer für TFT
     display.setTextColor(ST77XX_WHITE);     // Textfarbe
-    display.setCursor(5, 10);
+    display.setCursor(0, 10);
 
     display.print(F("Profil: "));
     display.println(this->modeStr);
@@ -315,6 +336,7 @@ public:
 
     display.print(F("Schwelle: "));
     display.println(this->threshold);
+
   }
 
 };
