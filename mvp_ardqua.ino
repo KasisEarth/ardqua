@@ -58,7 +58,7 @@ const unsigned long SAMPLE_INTERVAL_MS = 10000;
 
 // ================= FEUCHTEVERLAUF =================
 const int HISTORY_SIZE = 64;
-int moistureHistory[HISTORY_SIZE];
+float moistureHistory[HISTORY_SIZE];
 int historyIndex = 0;
 bool historyFilled = false;
 
@@ -287,11 +287,11 @@ public:
     int idx0 = (historyIndex + i - count - 1 + HISTORY_SIZE) % HISTORY_SIZE;
     int idx1 = (historyIndex + i - count + HISTORY_SIZE) % HISTORY_SIZE;
 
-    int v0 = moistureHistory[idx0];
-    int v1 = moistureHistory[idx1];
+    float v0 = moistureHistory[idx0];
+    float v1 = moistureHistory[idx1];
 
-    int y0 = fmap(v0, 0, 10, gy + gh - 2, gy + 2);
-    int y1 = fmap(v1, 0, 10, gy + gh - 2, gy + 2);
+    float y0 = fmap(v0, 0, 10, gy + gh - 2, gy + 2);
+    float y1 = fmap(v1, 0, 10, gy + gh - 2, gy + 2);
 
     int x0 = fmap(i - 1, 0, count - 1, gx + 2, gx + gw - 2);
     int x1 = fmap(i, 0, count - 1, gx + 2, gx + gw - 2);
