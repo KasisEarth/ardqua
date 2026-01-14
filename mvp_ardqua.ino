@@ -35,7 +35,7 @@ const int MAX_VALUE = 550;
 const int MIN_VALUE = 210;
 
 // threshold of soil moisture measurement
-static constexpr int thr[3] = {
+static constexpr float thr[3] = {
     5.5, // feuchter Grenzwert
     7, // Mittlerer Grenzwert
     8.5  // Trockener Grenzwert
@@ -87,7 +87,7 @@ private:
   // current pump run time in ms
   int pumpTime;
   // current threshold of moisture measurement
-  int threshold;
+  float threshold;
   // current tft modus
   bool displayOn;
   // time of last button press
@@ -290,22 +290,22 @@ public:
     int v0 = moistureHistory[idx0];
     int v1 = moistureHistory[idx1];
 
-    int y0 = map(v0, 0, 1023, gy + gh - 2, gy + 2);
-    int y1 = map(v1, 0, 1023, gy + gh - 2, gy + 2);
+    int y0 = fmap(v0, 0, 10, gy + gh - 2, gy + 2);
+    int y1 = fmap(v1, 0, 10, gy + gh - 2, gy + 2);
 
-    int x0 = map(i - 1, 0, count - 1, gx + 2, gx + gw - 2);
-    int x1 = map(i, 0, count - 1, gx + 2, gx + gw - 2);
+    int x0 = fmap(i - 1, 0, count - 1, gx + 2, gx + gw - 2);
+    int x1 = fmap(i, 0, count - 1, gx + 2, gx + gw - 2);
 
     display.drawLine(x0, y0, x1, y1, ST77XX_GREEN);
   }
 
   // ---------- Schwelle ----------
-  int yThresh = map(this->threshold, 0, 1023, gy + gh - 2, gy + 2);
+  float yThresh = fmap(this->threshold, 0, 10, gy + gh - 2, gy + 2);
   display.drawLine(gx + 2, yThresh, gx + gw - 2, yThresh, ST77XX_RED);
 
   display.setTextColor(ST77XX_RED);
-  display.setCursor(0, yThresh-2);
-  display.print(this->threshold);
+  display.setCursor(2, yThresh-2);
+  display.print(this->threshold,1);
 
   // ---------- X-Achse ----------
   if ((historyIndex * SAMPLE_INTERVAL_MS / 60000) > 60)
