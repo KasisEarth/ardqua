@@ -184,7 +184,7 @@ public:
       Serial.println("TFT Display aktiviert");
       this->displayOn = true;
       analogWrite(PIN_BL, 200);
-      this->updateScreen(moistureHistory[-1]);
+      this->updateScreen(moistureHistory[historyIndex-1]);
       this->buttonLastPressed = millis();
     }
     else if ((millis() - this->buttonLastPressed) > DISPLAY_ON_MS && !but_pressed && this->displayOn)
