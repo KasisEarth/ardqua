@@ -31,7 +31,7 @@ enum DisplayMode
 
 // ================= PROFILE =================
 // Maximaler und minimaler "messbarer" Wert (Wasser, Luft)
-const int MAX_VALUE = 550;
+const int MAX_VALUE = 560;
 const int MIN_VALUE = 210;
 
 // threshold of soil moisture measurement
@@ -118,7 +118,7 @@ public:
     Serial.println(this->modeStr);
   }
 
-  void checkPump(int moisture)
+  void checkPump(float moisture)
   {
     if (moisture >= (this->threshold))
     {
@@ -196,7 +196,7 @@ public:
     }
   }
 
-  int readSoilAveraged()
+  float readSoilAveraged()
   {
     long sum = 0;
     float moisture;
@@ -218,7 +218,7 @@ public:
     return moisture;
   }
 
-  void updateScreen(int moisture)
+  void updateScreen(float moisture)
   {
     if (this->tftMode == MODE_GRAPH)
     {
@@ -230,7 +230,7 @@ public:
     }
   }
 
-  void addMoistureToHistory(int value)
+  void addMoistureToHistory(float value)
   {
     if (!historyFilled)
     {
