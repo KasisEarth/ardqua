@@ -1,24 +1,23 @@
 
 # ARDQUA – Automatisches Bewässerungssystem mit Arduino
 
-ARDQUA ist ein Arduino-basiertes, autonom arbeitendes Bewässerungssystem für Zimmerpflanzen.  
+ARDQUA ist ein Arduino-basiertes, automatisiertes Bewässerungssystem für Zimmerpflanzen.  
 Es misst die Bodenfeuchtigkeit und steuert eine Wasserpumpe automatisch.
 
 Das Projekt wurde im Rahmen des Moduls **Hardwarenahe Programmierung** im **CAS Computer Science 1 (ZHAW)** umgesetzt.
 
 ---
 
-## Funktionen
+## Funktionalitäten
 
-- Kapazitiver Bodenfeuchtigkeitssensor  
-- Drei Bewässerungsprofile: **trocken / mittel / feucht** (Auswahl über 3-stufigen Schalter)  
-- Automatische Ansteuerung einer Wasserpumpe über ein Relais  
-- Cooldown-Zeit zur Vermeidung von Fehlmessungen und Überbewässerung  
+- In regelmässigen Zeitintervallen misst ein kapazitiver Bodenfeuchtigkeitssensor die Feuchtigkeit im Substrat
+- Automatische Ansteuerung einer Wasserpumpe über ein Relais falls Grenzwert überschritten wird
+- Drei Bewässerungsprofile: trocken / mittel / feucht (Auswahl über 3-stufigen Schalter)  
 - TFT-Display mit Anzeige von:
   - aktuellem Bodenfeuchtigkeitswert  
   - aktivem Bewässerungsprofil  
   - grafischem Verlauf der Bodenfeuchtigkeit  
-- Wechsel zwischen Text- und Graph-Anzeige per Tastendruck  
+- Aktivierung TFT-Display und Wechsel zwischen Text- und Graph-Anzeige per Tastendruck  
 
 ---
 
@@ -27,10 +26,10 @@ Das Projekt wurde im Rahmen des Moduls **Hardwarenahe Programmierung** im **CAS 
 - Arduino Nano  
 - Kapazitiver Bodenfeuchtigkeitssensor  
 - TFT-Display (SPI)  
-- Relais und Wasserpumpe  
+- Relais, Wasserpumpe, Schlauch  
 - DPDT-Schalter (3-stufig)  
 - Druckknopf  
-- Externes Wasserreservoir  
+- Wasserreservoir  
 
 Die vollständige Pin-Belegung ist in der Projektdokumentation beschrieben.
 
@@ -52,8 +51,8 @@ Die vollständige Pin-Belegung ist in der Projektdokumentation beschrieben.
 ## Kalibrierung
 
 Der Bodenfeuchtigkeitssensor wird über zwei Referenzmessungen kalibriert:
-- Messung in Luft (trocken)
-- Messung in Wasser (nass)
+- Messung in Luft (trocken -> max_value)
+- Messung in Wasser (nass -> min_value)
 
 Die Bewässerungsgrenzwerte sowie die Pumpdauer sind statisch definiert und profilabhängig.
 
