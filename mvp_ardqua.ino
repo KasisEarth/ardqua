@@ -397,7 +397,7 @@ void CallbackSchalter()
 
 void CallbackMoisture()
 {
-  int moisture = a.readSoilAveraged();
+  float moisture = a.readSoilAveraged();
   a.addMoistureToHistory(moisture);
   a.updateScreen(moisture);
   a.checkPump(moisture);
